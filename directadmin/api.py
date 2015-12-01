@@ -1026,7 +1026,7 @@ class Api(object):
         """
         return self._execute_cmd("CMD_API_SHOW_DOMAINS")
 
-    def list_additional_domains(self):
+    def list_domains_additional(self):
         """List domains with additional info
 
         Implements command CMD_API_ADDITIONAL_DOMAINS
