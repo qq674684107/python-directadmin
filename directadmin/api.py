@@ -1475,5 +1475,47 @@ class Api(object):
                 raise ApiError('cant find path')
             domain = self.pointers[domain]
         if self.domains[domain]:
-            return 'domains/' + domain + '/public_html/'
+            return '/domains/' + domain + '/public_html/'
         return None
+
+    def create_directory(self, path):
+        """ Create a directory
+
+        Implements CMD_API_FILE_MANAGER
+
+        Parameters:
+        path -- path to dir
+        """
+        # TODO: check if top dir exists
+        parameters = [('action', 'folder'),
+            ('path', path),
+            ('name', dirname)]
+        return self._execute_cmd("CMD_API_FILE_MANAGER", parameters)
+
+    def remove_directory(self, path):
+        """ Remove a directory
+
+        Implements CMD_API_FILE_MANAGER
+
+        Parameters:
+        path -- path to dir
+        """
+        # /CMD_API_FILE_MANAGER?action=multiple&button=delete&overwrite=no&path=/domains/dev.relisten.nl/public_html&select1=/domains/dev.relisten.nl/public_html/.well-known
+        pass
+
+    def create_file(self, path, filename, contents):
+        """ Create or edit a file on the server
+
+        Implements command CMD_API_FILE_MANAGER
+
+        Create or edit a file on the server. If the path does not exists,
+        an attempt is made to create the directories.
+
+        Parameters:
+        path -- path to dir
+        filename -- name of the file to be created
+        contents -- contents of file
+        """
+        self.create_directory(path)
+        # CMD_API_FILE_MANAGER?action=upload&path=/domains/dev.relisten.nl/public_html/.well-known/acme-challenge&filename=2345234g234tg23t&text=hallo
+        pass
