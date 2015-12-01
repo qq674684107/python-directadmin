@@ -446,9 +446,9 @@ class EndUser(User):
 
 # Source https://gist.github.com/zhenyi2697/5252801
 class ApiParameters(object):
-    def __init__(self, post=[], get=[]):
-        self.post = post
-        self.get = get
+    def __init__(self, post=None, get=None):
+        self.post = post if post is not None else []
+        self.get = get if get is not None else []
         self.files = []
         self.boundary = mimetools.choose_boundary()
 
@@ -570,7 +570,7 @@ class ApiConnector(object):
             if len(parameters.get) > 0:
                 url = '%s?%s' % (url, urllib.urlencode(parameters.get))
 
-            if len(parameters.file) > 0:
+            if len(parameters.files) > 0:
                 data = str(parameters)
                 headers['Content-type'] = form.get_content_type()
                 headers['Content-length'] = len(body)
