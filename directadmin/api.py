@@ -461,7 +461,7 @@ class ApiConnector(object):
                   password,
                   hostname="localhost",
                   port=2222,
-                  https=False):
+                  https=True):
         """Constructor
 
         Parameters:
@@ -470,7 +470,7 @@ class ApiConnector(object):
         hostname = Directadmin's hostname (default: localhost)
         port = port on which Directadmin listens (default: 2222)
         https -- boolean, if True all transactions will
-                 be performed using HTTPS (default: False)
+                 be performed using HTTPS (default: True)
         """
         self._hostname = hostname
         self._port = int(port)
@@ -597,7 +597,7 @@ class Api(object):
                   password,
                   hostname="localhost",
                   port=2222,
-                  https=False):
+                  https=True):
         """Constructor
 
         Initializes the connection for the API
@@ -608,7 +608,7 @@ class Api(object):
         hostname -- Directadmin server host (default: localhost)
         port -- Directadmin server port (default: 2222)
         https -- boolean, if True all transactions will
-                 be performed using HTTPS (default: False)
+                 be performed using HTTPS (default: True)
         """
         self._connector = ApiConnector(username,
                                        password,
@@ -1015,6 +1015,32 @@ class Api(object):
         Method info: http://www.directadmin.com/api.html#user_apis
         """
         return self._execute_cmd("CMD_API_SHOW_DOMAINS")
+
+    def list_additional_domains(self):
+        """List domains with additional info
+
+        Implements command CMD_API_ADDITIONAL_DOMAINS
+
+        Returns a list of all the logged user's domains with additional info
+
+        Method info: http://www.directadmin.com/api.html#user_apis
+        """
+        return self._execute_cmd("CMD_API_ADDITIONAL_DOMAINS")
+
+    def list_domain_pointers(self, domain):
+        """List domain pointers
+
+        Implements command CMD_API_DOMAIN_POINTER
+
+        Returns a list of all domain pointers for a domain
+
+        Method info: http://www.directadmin.com/api.html#user_apis
+
+        Parameters:
+        domain -- the domain to be shown
+        """
+        return self._execute_cmd("CMD_API_SUBDOMAINS",
+                [('domain', domain)])
 
     def list_subdomains(self, domain):
         """List subdomains
