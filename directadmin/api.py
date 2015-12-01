@@ -39,6 +39,7 @@ import urllib2
 import urllib
 import urlparse
 import base64
+import mimetools
 
 _user_agent = "Python Directadmin"
 
@@ -443,6 +444,71 @@ class EndUser(User):
                 'sysinfo': "OFF",
                 'dnscontrol': "OFF"}
 
+# Source https://gist.github.com/zhenyi2697/5252801
+class ApiParameters(object):
+    def __init__(self, post=[], get=[]):
+        self.post = post
+        self.get = get
+        self.files = []
+        self.boundary = mimetools.choose_boundary()
+
+    def get_content_type(self):
+        if len(self.files) > 0:
+            return 'multipart/form-data; boundary=%s' % self.boundary
+        return 'text/plain'
+
+    def add_post(self, name, value):
+        """Add a simple field to the form data."""
+        self.post.append((name, value))
+
+    def add_get(self, name, value):
+        """Add a simple get parameter"""
+        self.get.append((name, value))
+
+    def add_file(self, fieldname, filename, fileHandle, mimeType=None):
+        """Add a file to be uploaded."""
+        body = fileHandle.read()
+        if mimetype is None:
+            mimetype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+        self.files.append((fieldname, filename, mimetype, body))
+
+    def __str__(self):
+        """Return a string representing the form data, including attached files."""
+        # Build a list of lists, each containing "lines" of the
+        # request.  Each part is separated by a boundary string.
+        # Once the list is built, return a string where each
+        # line is separated by '\r\n'.  
+        parts = []
+        part_boundary = '--' + self.boundary
+        
+        # Add the form fields
+        parts.extend(
+            [ part_boundary,
+              'Content-Disposition: form-data; name="%s"' % name,
+              '',
+              value,
+            ]
+            for name, value in self.post
+            )
+        
+        # Add the files to upload
+        parts.extend(
+            [ part_boundary,
+              'Content-Disposition: file; name="%s"; filename="%s"' % \
+                 (field_name, filename),
+              'Content-Type: %s' % content_type,
+              '',
+              body,
+            ]
+            for field_name, filename, content_type, body in self.files
+            )
+        
+        # Flatten the list and add closing boundary marker,
+        # then return CR+LF separated data
+        flattened = list(itertools.chain(*parts))
+        flattened.append('--' + self.boundary + '--')
+        flattened.append('')
+        return '\r\n'.join(flattened)
 
 class ApiConnector(object):
     """API Connector
@@ -478,7 +544,7 @@ class ApiConnector(object):
         self._password = password
         self._https = bool(https)
 
-    def execute(self, cmd, parameters=None, get=None):
+    def execute(self, cmd, parameters=None):
         """Execute command
 
         Executes a command of the API
@@ -486,26 +552,33 @@ class ApiConnector(object):
 
         Parameters:
         cmd = command name
-        parameters = list of tuples with parameters (default: None)
-        get = list of tuples or dict with get parameters (default: None)
+        parameters = ApiParameters object (default: None)
         """
         url = self._get_url(cmd)
-
-        if get is not None:
-            url = '%s?%s' % (url, urllib.urlencode(get))
-
-        if parameters is not None:
-            parameters = urllib.urlencode(parameters)
-
-        request = urllib2.Request(url, parameters)
+        data = None
+        headers = {}
 
         # Directadmin's API requires Basic HTTP Authentication
         base_auth = base64.b64encode("%s:%s" %
                 (self._username, self._password))
-        request.add_header('Authorization', 'Basic %s' % base_auth)
-
+        headers['Authorization'] = 'Basic %s' % base_auth
         # Identify our app with a custom User-Agent
-        request.add_header('User-Agent', _user_agent)
+        headers['User-Agent'] = _user_agent
+
+        # Build the url and data
+        if parameters is not None:
+            if len(parameters.get) > 0:
+                url = '%s?%s' % (url, urllib.urlencode(parameters.get))
+
+            if len(parameters.file) > 0:
+                data = str(parameters)
+                headers['Content-type'] = form.get_content_type()
+                headers['Content-length'] = len(body)
+            elif len(parameters.post) > 0:
+                data = urllib.urlencode(parameters.post)
+
+        request = urllib2.Request(url, data, headers)
+
 
         # Open the URL and handle the response
         try:
@@ -623,7 +696,9 @@ class Api(object):
 
         Executes a command using the Connection object
         """
-        return self._connector.execute(cmd, parameters, get)
+        if parameters is not None and not isinstance(parameters, ApiParameters):
+            parameters = ApiParameters(parameters, get)
+        return self._connector.execute(cmd, parameters)
 
     def _yes_no(self, b):
         """Translates a boolean to "yes"/"no" """
@@ -841,7 +916,7 @@ class Api(object):
         This does not affect the email address for the
         ticketing/messaging system.
 
-        Parameteres:
+        Parameters:
         email -- a valid email address
         domain -- any of the user's domains
         """
