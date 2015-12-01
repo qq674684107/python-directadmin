@@ -1538,24 +1538,46 @@ class Api(object):
 
         return self._execute_cmd("CMD_API_SITE_BACKUP", parameters)
 
+    def get_base_domain(self, domain):
+        """ Returns the base domain name for a domain, pointer or subdomain 
+        Returns a tuple of (base, subdomain)
+
+        Parameters:
+        domain -- a domain name, pointer domain name or subdomain
+        """
+        # TODO: get base name for subdomains
+        base = None
+        if domain[:4] == 'www.':
+            domain = domain[4:]
+        if not self.domains:
+            self.list_domains()
+        if domain in self.domains:
+            base = domain
+        else:
+            if not self.pointers:
+                self.list_domain_pointers()
+            if domain in self.pointers:
+                base = self.pointers[domain]
+            else:
+                # TODO: subdomain
+                raise ApiError('cant find path')
+        if base in self.domains:
+            return (base, '')
+        else:
+            return (None, None)
+
     def get_public_html_path(self, domain):
         """ Generate the path to public_html for a given domain or pointer 
 
         Parameters:
         domain -- a domain name or pointer
         """
-        # TODO: get files path for subdomains
-        if not self.domains:
-            self.list_domains()
-        if domain not in self.domains:
-            if not self.pointers:
-                self.list_domain_pointers()
-            if domain not in self.pointers:
-                raise ApiError('cant find path')
-            domain = self.pointers[domain]
-        if self.domains[domain]:
-            return '/domains/' + domain + '/public_html/'
-        return None
+        (domain, sub) = self.get_base_domain(domain)
+        if domain is None:
+            return None
+        if sub != '':
+            sub = sub + '/'
+        return '/domains/' + domain + '/public_html/' + sub
 
     def create_folder(self, path):
         """ Create a folder
