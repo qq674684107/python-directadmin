@@ -615,6 +615,8 @@ class Api(object):
                                        hostname,
                                        port,
                                        https)
+        self.domains = {}
+        self.pointers = {}
 
     def _execute_cmd(self, cmd, parameters=None, get=None):
         """Execute command
@@ -1024,7 +1026,10 @@ class Api(object):
 
         Method info: http://www.directadmin.com/api.html#user_apis
         """
-        return self._execute_cmd("CMD_API_SHOW_DOMAINS")
+        domains = self._execute_cmd("CMD_API_SHOW_DOMAINS")
+        for domain in domains:
+            self.domains[domain] = domain
+        return domains
 
     def list_domains_additional(self):
         """List domains with additional info
@@ -1037,20 +1042,35 @@ class Api(object):
         """
         return self._execute_cmd("CMD_API_ADDITIONAL_DOMAINS")
 
-    def list_domain_pointers(self, domain):
+    def list_domain_pointers(self, domain=None):
         """List domain pointers
 
         Implements command CMD_API_DOMAIN_POINTER
 
         Returns a list of all domain pointers for a domain
+        or all domain pointers if no domain is given
 
         Method info: http://www.directadmin.com/api.html#user_apis
 
         Parameters:
         domain -- the domain to be shown
         """
-        return self._execute_cmd("CMD_API_DOMAIN_POINTER",
+        if domain is None:
+            if not self.pointers:
+                self.pointers = {}
+                if not self.domains:
+                    self.list_domains()
+                for domain in self.domains:
+                    pointers = self._execute_cmd("CMD_API_DOMAIN_POINTER",
+                        [('domain', domain)])
+                    for pointer in pointers:
+                        self.pointers[pointer] = domain
+            return self.pointers
+
+        else:
+            pointers = self._execute_cmd("CMD_API_DOMAIN_POINTER",
                 [('domain', domain)])
+            return pointers
 
     def list_subdomains(self, domain):
         """List subdomains
@@ -1438,3 +1458,27 @@ class Api(object):
             parameters.append(('select%d' % i, v))
 
         return self._execute_cmd("CMD_API_SITE_BACKUP", parameters)
+
+    def get_files_path(self, domain):
+        """ Generate the path to public_html for a given domain or pointer 
+
+        Parameters:
+        domain -- a domain name or pointer
+        """
+        # TODO: get files path for subdomains
+        if not self.domains:
+            print 1
+            self.list_domains()
+        if not self.domains[domain]:
+            print 2
+            if not self.pointers:
+                print 3
+                self.list_domain_pointers()
+            if not self.pointers[domain]:
+                raise ApiError('cant find path')
+            print 5, domain
+            domain = self.pointers[domain]
+        if self.domains[domain]:
+            print 4, domain
+            return 'domains/' + domain + '/public_html/'
+        return None
