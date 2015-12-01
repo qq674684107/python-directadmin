@@ -1653,3 +1653,42 @@ class Api(object):
         parameters.add_file('file1', filename, 
                   fileHandle=io.StringIO(u''+contents))
         return self._execute_cmd('CMD_API_FILE_MANAGER', parameters)
+
+    def set_ssl_certificate(self, domain, certificate):
+        """ Update the ssl certificate
+
+        Implements command CMD_API_SSL
+
+        Updates the ssl certificate for the given domain
+
+        Parameters:
+        domain -- the domain to set a ssl certificate to
+        certificate -- the contents of the certificate (private key and certificate)
+
+        Raises ApiError on failure
+        """
+        parameters = ApiParameters([('domain', domain),
+            ('action', 'save'),
+            ('type', 'paste'),
+            ('certificate', certificate)])
+        return self._execute_cmd('CMD_API_SSL', parameters)
+
+    def set_ca_root_ssl_certificate(self, domain, cacert):
+        """ Update the ssl certificate
+
+        Implements command CMD_API_SSL
+
+        Updates the CA root certificates for the given domain
+
+        Parameters:
+        domain -- the domain to set a ssl certificate to
+        cacert -- the intermediate certificates
+
+        Raises ApiError on failure
+        """
+        parameters = ApiParameters([('domain', domain),
+            ('active', 'yes'),
+            ('type', 'cacert'),
+            ('action', 'save'),
+            ('cacert', cacert)])
+        return self._execute_cmd('CMD_API_SSL', parameters)
