@@ -1671,7 +1671,11 @@ class Api(object):
             ('action', 'save'),
             ('type', 'paste'),
             ('certificate', certificate)])
-        return self._execute_cmd('CMD_API_SSL', parameters)
+        try:
+            response = self._execute_cmd('CMD_API_SSL', parameters)
+            return response
+        except ApiError:
+            return False
 
     def set_ca_root_ssl_certificate(self, domain, cacert):
         """ Update the ssl certificate
@@ -1691,4 +1695,8 @@ class Api(object):
             ('type', 'cacert'),
             ('action', 'save'),
             ('cacert', cacert)])
-        return self._execute_cmd('CMD_API_SSL', parameters)
+        try:
+            response = self._execute_cmd('CMD_API_SSL', parameters)
+            return response
+        except ApiError:
+            return False
