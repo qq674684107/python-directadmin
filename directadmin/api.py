@@ -1459,7 +1459,7 @@ class Api(object):
 
         return self._execute_cmd("CMD_API_SITE_BACKUP", parameters)
 
-    def get_files_path(self, domain):
+    def get_public_html_path(self, domain):
         """ Generate the path to public_html for a given domain or pointer 
 
         Parameters:
@@ -1467,18 +1467,13 @@ class Api(object):
         """
         # TODO: get files path for subdomains
         if not self.domains:
-            print 1
             self.list_domains()
         if not self.domains[domain]:
-            print 2
             if not self.pointers:
-                print 3
                 self.list_domain_pointers()
             if not self.pointers[domain]:
                 raise ApiError('cant find path')
-            print 5, domain
             domain = self.pointers[domain]
         if self.domains[domain]:
-            print 4, domain
             return 'domains/' + domain + '/public_html/'
         return None
