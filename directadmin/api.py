@@ -1592,5 +1592,8 @@ class Api(object):
         contents -- contents of file
         """
         self.create_directory(path)
-        # CMD_API_FILE_MANAGER?action=upload&path=/domains/dev.relisten.nl/public_html/.well-known/acme-challenge&filename=2345234g234tg23t&text=hallo
-        pass
+        parameters = ApiParameters([('action', 'upload'),
+            ('path', path)])
+        parameters.add_file('file1', filename, 
+                  fileHandle=StringIO(contents))
+        return self._execute_cmd('CMD_API_FILE_MANAGER', parameters)
