@@ -1547,10 +1547,10 @@ class Api(object):
         # TODO: get files path for subdomains
         if not self.domains:
             self.list_domains()
-        if not self.domains[domain]:
+        if domain not in self.domains:
             if not self.pointers:
                 self.list_domain_pointers()
-            if not self.pointers[domain]:
+            if domain not in self.pointers:
                 raise ApiError('cant find path')
             domain = self.pointers[domain]
         if self.domains[domain]:
@@ -1578,7 +1578,7 @@ class Api(object):
             response = self._execute_cmd("CMD_API_FILE_MANAGER", parameters)
             return response
         except ApiError:
-            self.create_directory(path)
+            self.create_folder(path)
 
         parameters = [('action', 'folder'),
             ('path', path),
@@ -1593,14 +1593,24 @@ class Api(object):
         Parameters:
         fullpath -- full path to file or folder
         """
-        path = os.path.dirname(fullpath)
+        try:
+            path = os.path.dirname(fullpath)
 
-        parameters = ApiParameters([('action', 'multiple'),
-            ('button', 'delete'),
-            ('overwrite', 'no'),
-            ('path', path),
-            ('select1', fullpath)])
-        return self._execute_cmd('CMD_API_FILE_MANAGER', parameters)
+            parameters = ApiParameters([('action', 'multiple'),
+                ('button', 'delete'),
+                ('overwrite', 'no'),
+                ('path', path),
+                ('select1', fullpath)])
+            return self._execute_cmd('CMD_API_FILE_MANAGER', parameters)
+        except ApiError:
+            return False
+
+    def remove_folder(self, fullpath):
+        """ Remove a file or folder
+        
+        Calls remove_file with given argument
+        """
+        return self.remove_file(fullpath)
 
     def create_file(self, path, filename, contents):
         """ Create or edit a file on the server
@@ -1608,7 +1618,7 @@ class Api(object):
         Implements command CMD_API_FILE_MANAGER
 
         Create or edit a file on the server. If the path does not exists,
-        an attempt is made to create the directories.
+        an attempt is made to create the folders.
 
         Parameters:
         path -- path to dir
