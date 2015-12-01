@@ -1677,6 +1677,23 @@ class Api(object):
         except ApiError:
             return False
 
+    def remove_ssl_certificate(self, domain):
+        """ Remove the ssl certificate
+
+        Implements command CMD_API_SSL
+
+        Parameters:
+        domain -- the domain to remove a ssl certficate from
+        """
+        parameters = ApiParameters([('domain', domain),
+            ('action', 'save'),
+            ('type', 'server')])
+        try:
+            response = self._execute_cmd('CMD_API_SSL', parameters)
+            return response
+        except ApiError:
+            return False
+
     def set_ca_root_ssl_certificate(self, domain, cacert):
         """ Update the ssl certificate
 
@@ -1695,6 +1712,23 @@ class Api(object):
             ('type', 'cacert'),
             ('action', 'save'),
             ('cacert', cacert)])
+        try:
+            response = self._execute_cmd('CMD_API_SSL', parameters)
+            return response
+        except ApiError:
+            return False
+
+    def remove_ca_root_ssl_certificate(self, domain):
+        """ Remove the CA Root ssl certificate
+
+        Implements command CMD_API_SSL
+
+        Parameters:
+        domain -- the domain to remove the CA root ssl certficate from
+        """
+        parameters = ApiParameters([('domain', domain),
+            ('action', 'save'),
+            ('type', 'cacert')])
         try:
             response = self._execute_cmd('CMD_API_SSL', parameters)
             return response
