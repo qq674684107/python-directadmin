@@ -547,7 +547,7 @@ class ApiConnector(object):
         # was any problem with login
         info = response.info()
         if info.getheader('X-DirectAdmin') == 'unauthorized':
-            raise ApiError("Invalid username or password")
+            raise ApiError("Invalid username or password or LoginKey is not allowed to use this command")
 
         # If we're getting HTML content we'll search for known
         # error messages.
@@ -629,6 +629,16 @@ class Api(object):
             return "yes"
         else:
             return "no"
+
+    def test_login(self):
+        """Test login credentials
+
+        Implements command CMD_API_LOGIN_TEST
+
+        Raises ApiError if credentials are incorrect or if the
+        resource CMD_API_LOGIN_TEST is not allowed
+        """
+        return self._execute_cmd("CMD_API_LOGIN_TEST")
 
     def create_admin(self, admin_user, notify=True):
         """Create admin
@@ -1039,7 +1049,7 @@ class Api(object):
         Parameters:
         domain -- the domain to be shown
         """
-        return self._execute_cmd("CMD_API_SUBDOMAINS",
+        return self._execute_cmd("CMD_API_DOMAIN_POINTER",
                 [('domain', domain)])
 
     def list_subdomains(self, domain):
