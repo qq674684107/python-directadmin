@@ -40,6 +40,10 @@ import urllib
 import urlparse
 import base64
 import mimetools
+import mimetypes
+import os
+import io
+import itertools
 
 _user_agent = "Python Directadmin"
 
@@ -468,9 +472,9 @@ class ApiParameters(object):
     def add_file(self, fieldname, filename, fileHandle, mimeType=None):
         """Add a file to be uploaded."""
         body = fileHandle.read()
-        if mimetype is None:
-            mimetype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-        self.files.append((fieldname, filename, mimetype, body))
+        if mimeType is None:
+            mimeType = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+        self.files.append((fieldname, filename, mimeType, body))
 
     def __str__(self):
         """Return a string representing the form data, including attached files."""
@@ -572,8 +576,8 @@ class ApiConnector(object):
 
             if len(parameters.files) > 0:
                 data = str(parameters)
-                headers['Content-type'] = form.get_content_type()
-                headers['Content-length'] = len(body)
+                headers['Content-type'] = parameters.get_content_type()
+                headers['Content-length'] = len(data)
             elif len(parameters.post) > 0:
                 data = urllib.urlencode(parameters.post)
 
@@ -1553,30 +1557,50 @@ class Api(object):
             return '/domains/' + domain + '/public_html/'
         return None
 
-    def create_directory(self, path):
-        """ Create a directory
+    def create_folder(self, path):
+        """ Create a folder
 
         Implements CMD_API_FILE_MANAGER
 
         Parameters:
         path -- path to dir
+
+        Raises ApiError if folder cannot be created
         """
-        # TODO: check if top dir exists
+        dirname = os.path.basename(path)
+        path = os.path.dirname(path)
+        if path == '/':
+            raise ApiError('can\'t create dir')
+        try:
+            parameters = [('action', 'folder'),
+                ('path', path),
+                ('name', dirname)]
+            response = self._execute_cmd("CMD_API_FILE_MANAGER", parameters)
+            return response
+        except ApiError:
+            self.create_directory(path)
+
         parameters = [('action', 'folder'),
             ('path', path),
             ('name', dirname)]
         return self._execute_cmd("CMD_API_FILE_MANAGER", parameters)
 
-    def remove_directory(self, path):
-        """ Remove a directory
+    def remove_file(self, fullpath):
+        """ Remove a file or folder
 
         Implements CMD_API_FILE_MANAGER
 
         Parameters:
-        path -- path to dir
+        fullpath -- full path to file or folder
         """
-        # /CMD_API_FILE_MANAGER?action=multiple&button=delete&overwrite=no&path=/domains/dev.relisten.nl/public_html&select1=/domains/dev.relisten.nl/public_html/.well-known
-        pass
+        path = os.path.dirname(fullpath)
+
+        parameters = ApiParameters([('action', 'multiple'),
+            ('button', 'delete'),
+            ('overwrite', 'no'),
+            ('path', path),
+            ('select1', fullpath)])
+        return self._execute_cmd('CMD_API_FILE_MANAGER', parameters)
 
     def create_file(self, path, filename, contents):
         """ Create or edit a file on the server
@@ -1591,9 +1615,9 @@ class Api(object):
         filename -- name of the file to be created
         contents -- contents of file
         """
-        self.create_directory(path)
+        self.create_folder(path)
         parameters = ApiParameters([('action', 'upload'),
             ('path', path)])
         parameters.add_file('file1', filename, 
-                  fileHandle=StringIO(contents))
+                  fileHandle=io.StringIO(u''+contents))
         return self._execute_cmd('CMD_API_FILE_MANAGER', parameters)
