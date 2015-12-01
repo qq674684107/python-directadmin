@@ -694,6 +694,7 @@ class Api(object):
                                        https)
         self.domains = {}
         self.pointers = {}
+        self.subdomains = {}
 
     def _execute_cmd(self, cmd, parameters=None, get=None):
         """Execute command
@@ -1151,20 +1152,38 @@ class Api(object):
                 [('domain', domain)])
             return pointers
 
-    def list_subdomains(self, domain):
+    def list_subdomains(self, domain=None):
         """List subdomains
 
         Implements command CMD_API_SUBDOMAINS
 
         Returns a list of all the logged user's subdomains
+        or all the subdomains if no domain is given
 
         Method info: http://www.directadmin.com/api.html#user_apis
 
         Parameters:
         domain -- the domain to be shown
         """
-        return self._execute_cmd("CMD_API_SUBDOMAINS",
+        if domain is None:
+            if not self.subdomains:
+                self.subdomains = {}
+                if not self.domains:
+                    self.list_domains()
+                for domain in self.domains:
+                    subdomains = self._execute_cmd("CMD_API_SUBDOMAINS",
+                        [('domain', domain)])
+                    for subdomain in subdomains:
+                        if subdomain in self.subdomains:
+                            self.subdomains[subdomain].append(domain)
+                        else:
+                            self.subdomains[subdomain] = [domain]
+            return self.subdomains
+
+        else:
+            subdomains = self._execute_cmd("CMD_API_SUBDOMAINS",
                 [('domain', domain)])
+            return subdomains
 
     def create_subdomain(self, domain, subdomain):
         """Create subdomain
@@ -1545,26 +1564,32 @@ class Api(object):
         Parameters:
         domain -- a domain name, pointer domain name or subdomain
         """
-        # TODO: get base name for subdomains
-        base = None
         if domain[:4] == 'www.':
             domain = domain[4:]
+
         if not self.domains:
             self.list_domains()
         if domain in self.domains:
-            base = domain
-        else:
-            if not self.pointers:
-                self.list_domain_pointers()
-            if domain in self.pointers:
-                base = self.pointers[domain]
-            else:
-                # TODO: subdomain
-                raise ApiError('cant find path')
-        if base in self.domains:
-            return (base, '')
-        else:
-            return (None, None)
+            return (domain, '')
+
+        if not self.pointers:
+            self.list_domain_pointers()
+        if domain in self.pointers:
+            return (self.pointers[domain], '')
+
+        if not self.subdomains:
+            self.list_subdomains()
+        for subdomain in self.subdomains:
+            for base in self.domains:
+                if subdomain + '.' + base == domain:
+                    return (base, subdomain)
+            for pointer in self.pointers:
+                if subdomain + '.' + pointer == domain:
+                    base = self.pointers[pointer]
+                    return (base, subdomain)
+
+        raise ApiError('cant find path')
+        return (None, None)
 
     def get_public_html_path(self, domain):
         """ Generate the path to public_html for a given domain or pointer 
