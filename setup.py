@@ -23,7 +23,7 @@ Build script
 
 Implements distutils to create distribution packages of python-directadmin
 
-Proyect URL: http://code.google.com/p/python-directadmin/
+Project URL: http://code.google.com/p/python-directadmin/
 
 Author: Andrés Gattinoni <andresgattinoni@gmail.com>
 
